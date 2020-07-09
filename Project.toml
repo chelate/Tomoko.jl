@@ -1,0 +1,13 @@
+name = "Tomako"
+uuid = "436abb1d-50a6-4b95-b853-a773f63b8425"
+authors = ["Colin LaMont"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
