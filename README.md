@@ -22,9 +22,15 @@ end
 ```
 
 To run a simulation, you 
+<<<<<<< HEAD
 1. define an instance of a `PopRates` object, 
 2. construct an initial population using a number of different constructors and then 
 3. `run_sim(pop,par,timesteps)` timesteps tells you both how long to run the simulation and at which time-steps to gather statistics.
+=======
+    1. define an instance of a `PopRates` object, 
+    1. construct an initial population using a number of different constructors and then 
+    1. `run_sim(pop,par,timesteps)` timesteps at which to gather statistics.
+>>>>>>> master
 
 
 
