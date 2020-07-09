@@ -1,6 +1,6 @@
-using Tomako
+using Tomoko
 using Test
 
-@testset "Tomako.jl" begin
+@testset "Tomoko.jl" begin
     # Write your own tests here.
 end
