@@ -178,17 +178,6 @@ function next_event!(pop::Population, par::PopRates)
 	Δt
 end
 
-## Testing of functions
-
-par = PopRates([0.1,0,0.1,0,.1]);
-pop = initialize_pop(0,par);
-time = 0.0
-
-##
-
-@profile for ii in 1:10^7
-	global time += next_event!(pop, par)
-end
 
 ## Genetic Functions
 
