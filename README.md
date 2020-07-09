@@ -15,7 +15,7 @@ The dynamics of a population are determined by a [Parameters](https://github.com
 	β0::R 		= 1.0		# base (competetive) fitness 
 	σ::R 		= 0.5 		# excess Poisson noise
 	μ::R 		= 1.0e-3	# mutation rate per site
-    χ::R		= 0.0		# outcrossing probability (0:1)
+	χ::R		= 0.0		# outcrossing probability (0:1)
 	ρ::R 		= 1.0e-2	# crossing per nucleotide
 	f::Function = (x->0.0)	# mapping from genotype to fitness
 end
@@ -41,4 +41,4 @@ Ohta tells us:
 
 >Genetics is now at a very interesting stage. There are so many interesting questions unanswered and so many ways to test to find answers. Intuition is very important in addressing questions. Nurture your own sensibility and pursue your research and work with confidence.
 
-Hopefully this package will help people test to find answers in Genetics.
+The goal of this package is to help peope nuture their own sensibility and pursue their research in Genetics with confidence.
