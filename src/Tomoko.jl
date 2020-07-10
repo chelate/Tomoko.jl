@@ -15,15 +15,27 @@ export run_sim
 
 # struct encoding current state of population
 
-function  gillespie_step(pop::Population)
+function  gillespie_step(pop::Population, par::PopRates)
 	total = (pop.birth_total + pop.death*pop.size)
 	Δt = randexp() / total
 	if rand() < (pop.birth_total / total)
-		process = sample(1:pop.size, Weights(pop.birth, pop.birth_total))
+		process = sample_birth(pop, par)
 	else
 		process = - sample(1:pop.size)
 	end
 	return (process, Δt)
+end
+
+# rejection sampler for finding the mommy_index
+
+function sample_birth(pop::Population, par::PopRates)
+	while true
+		ind = sample(1:pop.size)
+		if rand() < (pop.fitness[ind] / par.βf.βmax)
+			return ind
+			break
+		end
+	end
 end
 
 # Mutation
@@ -81,12 +93,11 @@ Adjust the birth and death rates accordingly
 """
 function add_individual!(pop::Population, child::BitArray{1}, par::PopRates)
 	# add to the fitness
-	child_fitness = par.β0 + par.f(child)
-	pop.birth_total += child_fitness + par.σ
-	pop.death +=  child_fitness/par.κ			# add to the death rate
-	push!(pop.birth, child_fitness + par.σ) 	# add to the birthrates
-	push!(pop.fitness, child_fitness)
 	push!(pop.individuals, child)
+	push!(pop.fitness, par.f(child))
+	push!(pop.birth, last(pop.fitness) + par.σ)
+	pop.birth_total += last(pop.birth)
+	pop.death +=  last(pop.fitness)/par.κ			# add to the death rate 	# add to the birthrates
 	pop.size += 1 
 end
 
@@ -124,8 +135,8 @@ function recombination_event!(pop::Population, mommy_index::Int, par::PopRates)
 	# update their genomes
 	@views recombine!(pop.individuals[mommy_index], pop.individuals[daddy_index], par.ρ)
 	# the fitness differences
-	Δmfit = par.β0 + par.f(pop.individuals[mommy_index]) - pop.fitness[mommy_index] 
-	Δdfit = par.β0 + par.f(pop.individuals[daddy_index]) - pop.fitness[daddy_index]
+	Δmfit = par.f(pop.individuals[mommy_index]) - pop.fitness[mommy_index] 
+	Δdfit = par.f(pop.individuals[daddy_index]) - pop.fitness[daddy_index]
 	pop.fitness[mommy_index] += Δmfit
 	pop.fitness[daddy_index] += Δdfit
 	# update birthrates
@@ -138,7 +149,7 @@ end
 
 function next_event!(pop::Population, par::PopRates)
 	# step forward in time
-	(index, Δt) = gillespie_step(pop::Population)
+	(index, Δt) = gillespie_step(pop, par)
 	if index > 0
 		birth_event!(pop, index, par)
 		if rand(Bernoulli(par.ρ))
@@ -158,8 +169,8 @@ Measure diversity of neutral sites
 
 
 function run_sim(pop::Population, par::PopRates, timepoints; 
-	stats = [stat_D, stat_fit, stat_fitvar], 
-	names = [:D, :fit, :fitvar] )
+	stats = [stat_freq, x->stat_D(x,par), stat_fit, stat_fitvar], 
+	names = [:freq, :D, :fit, :fitvar] )
 	rows = []
 	time = 0 
 	for t in timepoints
@@ -170,9 +181,9 @@ function run_sim(pop::Population, par::PopRates, timepoints;
 	end
 	columns = Vector{Vector}(undef, 0)
 	for (i,r) in enumerate(first(rows))
-           column = Vector{typeof(r)}(undef, length(rows))
-           column .= getindex.(rows, i)
-           push!(columns, column)
+        column = Vector{typeof(r)}(undef, length(rows))
+        column .= getindex.(rows, i)
+        push!(columns, column)
        end
 	df = DataFrame(columns, [:t;names], copycols=false)
 end
