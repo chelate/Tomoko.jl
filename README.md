@@ -27,10 +27,11 @@ The dynamics of a population are determined by a [Parameters](https://github.com
 	μ::Float64 				= 1.0e-3	# mutation rate per site
 	χ::Float64				= 0.0		# outcrossing rate (between 0 and one), rate of recombination events
 	ρ::Float64 				= 1.0e-2	# how tightly two crossed genomes get wound together (# of crosses per nucleotide)
+	f::Function				# = fitness function using β1 
 end
 ```
 
-β1 is an array of fitness differences between wildtype (locus = 0) and the mutant (locus = 1).  These fitnesses are calculated by in a symmertric (-1,1) way, by default, with no epistasis.  Epistasis can be defined by defin
+`.β1` is keyword which is passed an array of fitness differences between wildtype (locus = 0) and the mutant (locus = 1).  These fitnesses are calculated by in a symmertric (-1,1) way, by default, with no epistasis.  Epistasis can be defined by defining an arbitrary fitness function 
 
 To run a simulation, you 
 1. define an instance of a `PopRates` object, 
@@ -41,7 +42,7 @@ To run a simulation, you
 
 ```julia
 par = PopRates(χ=.2, ρ=0.1, μ=10^-4)
-pop = initialize_pop(par,gene_size = 2048)
+pop = initialize_pop(par)
 df = run_sim(pop, par, 1:5:10000)
 ```
 The statistics are scalar functions of the population. They are passed to `run_sim` as an optional vector of functions `stats = [f1, f2, ...]` and their corresponding symbols `names = [:f1,:f2,...]` then define the data-frame column names. 
