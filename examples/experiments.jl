@@ -1,7 +1,15 @@
 ##
 
+using Revise
+##
 using Tomoko
-using Gadfly
+
+##
+
+β1 = [ (mod(ii, 10)==0 ? 0.01 : 0) for ii in 1:256]
+variable_sites = [ ii for ii in 1:256 if (mod(ii, 20)==0)]
+flip_prob = .01;
+
 ##
 par = PopRates(
     κ= 5000,
@@ -9,8 +17,15 @@ par = PopRates(
     ρ=0.1, 
     μ=.1/5000, 
     loci = 256, 
-    β1 = [ (mod(ii, 10)==0 ? 0.1 : 0) for ii in 1:256])
+    β1 = β1)
     # β1 is symmetrical 
-pop = initialize_pop(0.0,par)
-dg = run_sim(pop, par, 0:5:2000)
-@profile df = run_sim(pop, par, 0:5:2000)
+pop = initialize_pop(par);
+##
+dg = run_sim(pop, par, 0:1:200 ; var_sites = variable_sites, flip_prob = 0)
+
+
+##
+
+using Plots
+##
+plot(dg.time, dg.mean_fit)
