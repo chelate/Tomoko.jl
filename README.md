@@ -42,7 +42,7 @@ par = PopRates(χ=.2, ρ=0.1, μ=10^-4, loci = 512)
 df = run_sim(par, 1:5:10000)
 ```
 
-`run_sim' initializes a population by drawing frequencies from the Wright equlibrium at each locus.  Then the population is propagated forward in time using an exact Gillespie simulatior while statistics at the specified timepoints. These statistics and time points as a dataframe.
+`run_sim' initializes a population by drawing frequencies from the Wright equlibrium at each locus.  Then the population is propagated forward in time using an exact Gillespie simulatior while statistics at the specified timepoints. These statistics and time point are stored as a dataframe.
 
 # The default statistics
 We collect the following default statistics as columns in a DataFrame
