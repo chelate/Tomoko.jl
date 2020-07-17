@@ -10,7 +10,7 @@ Genetics is now almost 100 years old, but still very much active. Ohta herself h
 
 >Genetics is now at a very interesting stage. There are so many interesting questions unanswered and so many ways to test to find answers. Intuition is very important in addressing questions. Nurture your own sensibility and pursue your research and work with confidence. 
 
-The goal of this package is to help us nuture that sensibility. This means testing our intuitions against simulations with as few approximations as possible and without too much wait time.
+This package was made to help nuture that sensibility. This means testing our intuitions against simulations with as few approximations as possible and as fast as possible, with (relatively transparent) code.
 
 # Parameters and running simulations
 The dynamics of a population are determined by a type `PopRates`.
@@ -71,10 +71,9 @@ In the simulation defined, we start with a populaiton in pseudo-equilibrium and 
 Let's just look at what `run_sim` is made of. It's nothing much more than a for loop. Here's the main definition
 
 ```julia
-function run_sim(par::PopRates, timepoints;
+function run_sim(pop::Popstate, par::PopRates, timepoints;
 	var_sites = [], # vector of indices that are flipping
 	flip_prob = 0.1) # probability that they flip at every time point.
-    pop = initialize_pop(par) # population loci set to wright equilibrium, pop.time set to zero
     df = initialize_stats() # empty data frame for holding the stats
     for t in timepoints
         run_until!(pop,par,t) # evolve the poulation state until pop.time > t.
@@ -83,6 +82,13 @@ function run_sim(par::PopRates, timepoints;
     end
     return df # return the df, now heavy with juicy statistics for you to plot or analyze
 end
+
+# default definition when pop is provided
+function run_sim(par::PopRates, timepoints; kwdargs...) # population loci set to wright equilibrium, 
+	pop = initialize_pop(par)
+	run_sim(pop::Popstate, par::PopRates, timepoints; kwdargs...)
+end
+
 ```
 Complications can fall into three categories
 1. Change start population
@@ -90,43 +96,44 @@ Complications can fall into three categories
 1. Calculate more statistics.
 
 
-## Varying the start population
-But to make things more intersting we can change the initial population to be more out-of equilibrium, for instance defining it to be entirely made up of wildtype clones
+## Shanging the start population
+To make things more intersting, we can change the initial population to be more out-of equilibrium. For instance, we might define the population to be entirely made up of wildtype clones
 
 ```julia
 pop = initialize_pop(0.0,par) # the first argument specifies the mutant frequency
 ```
 
-We can also define the population with a full vector of frequencies of length equal to the number of loci.  Or we can grow out the population out from just a few individuals
+Or we can grow out the population out from just a few individuals
 
 ```julia
 pop = initialize_pop(0.0,par; pop_size = 10) 
 par = PopRates(χ=.2, ρ=0.1, μ=10^-4)
-df = run_sim(par, 1:5:10000)
+df = run_sim(pop, par, 1:5:10000)
 ```
+We can also define the population with a full vector of frequencies of length equal to the number of loci.
 
 ## Varying the evironment, bottleneck events.
 As seen above, `run_sim` has the ability to include environmental variation, consisting of selection sign flips on some number of active sites through the defined `active_sites` vector.  This gets used by `selection_flip` which returns a new parameter value.
 
-Note: `par::PopRates` is an immutable with internal constructors and shouldn't be mutated on the fly. Instead a new instance is defined and overwrites the local variable `par`. `pop::PopState` can be mutated at will.
+One can replace where `selection_flip` occurs in the `for` loop with more complicated changes to the evolutionary parameters or with functions on the population, like bottleneck events that remove individuals based on a particular sequence of loci.
 
-At this point `selection_flip` in the `for` loop to replace these functions with more complicated changes to the evolutionary parameters or with functions on the population, like bottleneck events that remove individuals based on a particular sequence of loci.
+Note: `par::PopRates` is an immutable with internal constructors and isn't be mutated on the fly. Instead a new instance is defined and overwrites the local variable `par`. On the other hand,`pop::PopState` is a mutable and can be mutated at will.
 
 ## Adding more statistics
 The statistics are functions of the population and parameters that live inside the Tomoko module.  This is how `record_stats` identifies the statistic name with the statistic function.  This means that to define more functions from the REPL you have to eval them into the Tomoko context and update the global variable `pop_stats` so that `record_stats` knows you want to keep track of a new variable.
 
 ```
 julia> Tomoko.eval(:(
-function est_fitnesses(pop::PopState, par::PopRates)
-    new_stat(pop::PopState, par::PopRates, sites = sites_of_interest)
+function new_stat(pop::PopState, par::PopRates)
+    do_stuff(pop::PopState, par::PopRates, sites = sites_of_interest)
 end
 ))
 
 julia> push!(Tomoko.pop_stats,:new_stat)
 ```
 
-This design was chosen to keep the statistic-gathering machinery as global variables to avoid having to pass yet another struct to the simulation functions and to make sure that the name and function are permanently linked.
+This design was chosen to keep the statistic-gathering machinery as global variables to avoid having to pass yet another struct to the simulation functions and to make sure that the name and function are intrinsincally linked.
 
 # Extending and contributing
 
-To run the experiment you need to run to answer your scientific questions, you will probably have to look at the source and see what's there, dev and modify the package to suit your needs. Understanding what methods available out of the box, you can get a feel for how the machinery works and how to extend it. Help Tomoko.jl evolve with pr's and feature requests!
+To run the experiment you need to run to answer your scientific questions, you will probably have to look at the source and see what's there, dev and modify the package to suit your needs. Understanding what methods available out of the box, you can get a feel for how the machinery works and how to extend it. Help Tomoko.jl evolve with PR's and feature requests!
