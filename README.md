@@ -4,8 +4,6 @@ Pop-gen simulator for Julia.  Tomoko is a forward-time, individual-based, bi-all
 
 Also included are several tools associated with Wright equilibrium including sampling and estimation of population and site parameters associated with the equilibrium distribution.
 
-The scheme is simple. Genotypes and individuals in a 1-1 mapping. We do not keep track of the number of clones. Instead, we avoid O(`pop.size^2`) time scaling by using a rejection sampling scheme. The rejection sampling is most efficient when the nearly-neutral assumption holds, and the majority of the population has additive fitness close to the maximum.
-
 Genetics is now almost 100 years old, but still very much active. Ohta herself has said,
 
 >Genetics is now at a very interesting stage. There are so many interesting questions unanswered and so many ways to test to find answers. Intuition is very important in addressing questions. Nurture your own sensibility and pursue your research and work with confidence. 
@@ -13,6 +11,8 @@ Genetics is now almost 100 years old, but still very much active. Ohta herself h
 This package was made to help nuture that sensibility. This means testing our intuitions against simulations with as few approximations as possible and as fast as possible, with (relatively transparent) code.
 
 # Parameters and running simulations
+The scheme is simple. Genotypes (stored as `BitVector`'s) and individuals are in a 1-1 mapping. We do not keep track of the number of clones. Instead, we avoid O(`pop.size^2`) time scaling by using a rejection sampling scheme. The rejection sampling is most efficient when the nearly-neutral assumption holds, and the majority of the population has additive fitness close to the maximum.
+
 The dynamics of a population are determined by a type `PopRates`.
 
 `PopRates` has the following default definitions
@@ -64,7 +64,7 @@ plot(df, x = :time, y = :pop_size, Geom.line)
 
 # Defining more complicated simulations.
 
-In the simulation defined, we start with a populaiton in pseudo-equilibrium and observe the (mild) effects of linkage and drift when the simulation runs. A pseudo-equilibrium starting point is useful because we have to wait less time for things to settle down if we are interested in the population stationary state. But probably you are running exact simulations because you are interested in what happens *far* from stationary state. This section is about how to spice things up a bit.
+In the simulation defined, we start with a populaiton in pseudo-equilibrium and observe the (mild) effects of linkage and drift when the simulation runs. A pseudo-equilibrium starting point is useful if we are interested in the population stationary state because we have to wait less time for things to settle down. However, you are probably running exact simulations because you are interested in what happens *far* from stationary state. This section is about how to spice things up a bit.
 
 ## What is inside `run_sim`
 
@@ -83,7 +83,7 @@ function run_sim(pop::Popstate, par::PopRates, timepoints;
     return df # return the df, now heavy with juicy statistics for you to plot or analyze
 end
 
-# default definition when pop is provided
+# definition when pop is not provided: linkage-free equilibrium.
 function run_sim(par::PopRates, timepoints; kwdargs...) # population loci set to wright equilibrium, 
 	pop = initialize_pop(par)
 	run_sim(pop::Popstate, par::PopRates, timepoints; kwdargs...)
@@ -135,5 +135,6 @@ julia> push!(Tomoko.pop_stats,:new_stat)
 This design was chosen to keep the statistic-gathering machinery as global variables to avoid having to pass yet another struct to the simulation functions and to make sure that the name and function are intrinsincally linked.
 
 # Extending and contributing
+In the end it's impossible to design a user interface that can do everything from the REPl.   To run the experiment you need to run to answer your scientific questions, you will probably have to look at the source and see what's there, dev and modify the package to suit your needs.
 
-To run the experiment you need to run to answer your scientific questions, you will probably have to look at the source and see what's there, dev and modify the package to suit your needs. Understanding what methods available out of the box, you can get a feel for how the machinery works and how to extend it. Help Tomoko.jl evolve with PR's and feature requests!
+By understanding what methods are available out of the box, you can get a feel for how the machinery works and how to extend it. Help Tomoko.jl evolve with PR's and feature requests!
