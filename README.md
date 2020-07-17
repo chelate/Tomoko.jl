@@ -8,7 +8,7 @@ Genetics is now almost 100 years old, but still very much active. Ohta herself h
 
 >Genetics is now at a very interesting stage. There are so many interesting questions unanswered and so many ways to test to find answers. Intuition is very important in addressing questions. Nurture your own sensibility and pursue your research and work with confidence. 
 
-This package was made to help nuture that sensibility. This means testing our intuitions against simulations with as few approximations as possible and as fast as possible, with (relatively transparent) code.
+This package was made to help nuture that sensibility.
 
 # Parameters and running simulations
 The scheme is simple. Genotypes (stored as `BitVector`'s) and individuals are in a 1-1 mapping. We do not keep track of the number of clones. Instead, we avoid O(`pop.size^2`) time scaling by using a rejection sampling scheme. The rejection sampling is most efficient when the nearly-neutral assumption holds, and the majority of the population has additive fitness close to the maximum.
