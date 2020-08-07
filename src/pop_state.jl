@@ -40,7 +40,7 @@ end
 # unfortunately we may want to access it in a more conventional way
 function β1_vector(f::FitVector)
     # vector of fitness differences f(wildtype) - f(mutant)
-    a = zeros(Float64, maximum([maximum(f.sind),maximum(f.nind)]))
+    a = zeros(Float64, maximum([maximum([0; f.sind]),maximum([0; f.nind])]))
     for (ii,val) in zip(f.sind,f.svals)
         a[ii] = -val
     end

@@ -6,8 +6,11 @@ using Distributions
 using SpecialFunctions
 using JuliennedArrays
 using DataFrames
+using HypergeometricFunctions
+using Optim
 
 
+include("df_analysis.jl")
 include("pop_state.jl")
 include("pop_stats.jl")
 include("env_var.jl")
@@ -68,11 +71,11 @@ Assumes the action of a markov chain so that
 mutate!(X, 2μ) = mutate!(mutate!(X, μ), μ).
 mutate!(Inf) should randomize the genome
 
-To undertand the code, here we have randomly chosen cuts at 2/5.
+To undertand the code, here we have randomly chosen cuts at [2,5].
 From positions 3-5 the codes are swapped as in this diagram.
-*---  ,--  ,----->
-     /    /
-*---' `--'  ----->
+*--  ,---  ,----->
+    /     /
+*--' `---'  ----->
 
 """
 
@@ -155,7 +158,7 @@ function next_event!(pop::PopState, par::PopRates)
     (index, Δt) = gillespie_step(pop, par)
     if index > 0
         birth_event!(pop, index, par)
-        if rand(Bernoulli(par.ρ))
+        if rand(Bernoulli(par.χ))
             recombination_event!(pop, index, par)
         end
     else

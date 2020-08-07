@@ -10,7 +10,7 @@ function selection_flip(par::PopRates; var_sites = [], prob = 0.1)
     return PopRates(par, β1 = β1)
 end
 
-function run_sim(pop::Popstate, par::PopRates, timepoints;
+function run_sim(pop::PopState, par::PopRates, timepoints;
 	var_sites = [], # vector of indices that are flipping
 	flip_prob = 0.1) # probability that they flip at every time point.
     df = initialize_stats() # empty data frame for holding the stats
@@ -25,8 +25,13 @@ end
 # default definition when pop is provided
 function run_sim(par::PopRates, timepoints; kwdargs...) # population loci set to wright equilibrium, 
 	pop = initialize_pop(par)
-	run_sim(pop::Popstate, par::PopRates, timepoints; kwdargs...)
+	run_sim(pop, par, timepoints; kwdargs...)
 end
 
 
-
+"""
+bottleneck removes all individuals for which survives = false
+"""
+function bottleneck!(pop::PopState, survives::Function)
+    pop.individuals = pop.individuals[survives.(pop.individuals)]
+end

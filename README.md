@@ -86,7 +86,7 @@ end
 # definition when pop is not provided: linkage-free equilibrium.
 function run_sim(par::PopRates, timepoints; kwdargs...) # population loci set to wright equilibrium, 
 	pop = initialize_pop(par)
-	run_sim(pop::Popstate, par::PopRates, timepoints; kwdargs...)
+	run_sim(pop, par, timepoints; kwdargs...)
 end
 
 ```
@@ -106,8 +106,8 @@ pop = initialize_pop(0.0,par) # the first argument specifies the mutant frequenc
 Or we can grow out the population out from just a few individuals
 
 ```julia
-pop = initialize_pop(0.0,par; pop_size = 10) 
 par = PopRates(χ=.2, ρ=0.1, μ=10^-4)
+pop = initialize_pop(0.0, par; pop_size = 10) 
 df = run_sim(pop, par, 1:5:10000)
 ```
 We can also define the population with a full vector of frequencies of length equal to the number of loci.

@@ -20,7 +20,7 @@ at which point record_stats! will start recording another column in new data-fra
 
 ## Statistics on populations
 # used to construct a dataframe of simulation results.
-global pop_stats = [:time, :pop_size, :freq, :D, :mean_fit, :var_fit]
+global pop_stats = [:time, :pop_size, :freq, :D, :mean_fit, :var_fit, :mut_rate, :noise]
 # make this available to extend with one's own functions.
 
 initialize_stats() = DataFrame();
@@ -48,6 +48,14 @@ function D(pop::PopState, par::PopRates;
     stat_D(pop, sites = par.βf.nind, k = k)
 end
 
+function mut_rate(pop::PopState, par::PopRates)
+    par.μ
+end
+
+function noise(pop::PopState, par::PopRates)
+    par.σ
+end
+
 function freq(pop::PopState, par::PopRates)
     sum(pop.individuals)/pop.size
 end
@@ -61,7 +69,11 @@ function var_fit(pop::PopState,par::PopRates)
 end
 
 
-## The MLE fit for the beta-binomial distribution
+"""
+The MLE fit for the beta-binomial distribution
+
+This follows T. Minka's fixed point algorithm for fitting Polya distributions.
+"""
 
 function neutral_update_D(data::Array{T,2}, s::Real) where T
     # data has size = (number of categories, number of samples)
@@ -99,8 +111,3 @@ function stat_D(pop::PopState;
         vec = permutedims(hcat(vec , k .- vec))
         neutral_D(vec)
 end
-
-## TO DO The estimated fitness
-
-# function est_fit(pop::PopState, par::PopRates; sites = [])
-# end
