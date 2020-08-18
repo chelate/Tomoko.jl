@@ -6,14 +6,13 @@ using Distributions
 using SpecialFunctions
 using JuliennedArrays
 using DataFrames
-using HypergeometricFunctions
 using Optim
 
 
-include("df_analysis.jl")
 include("pop_state.jl")
 include("pop_stats.jl")
 include("env_var.jl")
+include("df_analysis.jl")
 
 export run_until!, next_event!
 

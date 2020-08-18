@@ -1,6 +1,4 @@
-
-using Optim
-using Distributions
+export estimate_Δ
 
 """
 This is a MLE for fitting the selection parameters to a time trace, given the neutral parameters

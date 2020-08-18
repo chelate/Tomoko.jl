@@ -4,11 +4,9 @@ Pop-gen simulator for Julia.  Tomoko is a forward-time, individual-based, bi-all
 
 Also included are several tools associated with Wright equilibrium including sampling and estimation of population and site parameters associated with the equilibrium distribution.
 
-Genetics is now almost 100 years old, but still very much active. Ohta herself has said,
+Genetics is now almost 100 years old, but still very much active. Ohta has said,
 
->Genetics is now at a very interesting stage. There are so many interesting questions unanswered and so many ways to test to find answers. Intuition is very important in addressing questions. Nurture your own sensibility and pursue your research and work with confidence. 
-
-This package was made to help nuture that sensibility.
+>Genetics is now at a very interesting stage. There are so many interesting questions unanswered and so many ways to test to find answers. Intuition is very important in addressing questions. Nurture your own sensibility and pursue your research and work with confidence.
 
 # Parameters and running simulations
 The scheme is simple. Genotypes (stored as `BitVector`'s) and individuals are in a 1-1 mapping. We do not keep track of the number of clones. Instead, we avoid O(`pop.size^2`) time scaling by using a rejection sampling scheme. The rejection sampling is most efficient when the nearly-neutral assumption holds, and the majority of the population has additive fitness close to the maximum.
@@ -43,6 +41,12 @@ df = run_sim(par, 1:5:10000)
 ```
 
 `run_sim' initializes a population by drawing frequencies from the Wright equlibrium at each locus.  Then the population is propagated forward in time using an exact Gillespie simulatior while statistics at the specified timepoints. These statistics and time point are stored as a dataframe.
+
+The simulation is in the form of an individual-based chemical reaction model. The time between birth/death events is exponentially distributed. The birth rate of an individual with genotype `x` is the fitness plus noise `f(x) + σ` and the death rate is the noise plus competition term: `mean(f.(pop.individuals))/κ + σ`
+
+Note that the death rates for all the individuals in the population are the same while the birth rates are determined by their fitness plus death rate. This leads to a stochastic Lotka-Voltera equation for the mean frequency of a particular trait in the absence of linkage.
+
+WARNING: As fitness only affects birth rates makes much easier to reason about (and code) the parameters than if fitness also affect the death rates as well.  However, this comes at the price of instability when there are individuals with negative birthrates.  The population size grows indefinitely and the simulation may fail to terminate. In future versions we hope to avoid this issue.
 
 # The default statistics
 We collect the following default statistics as columns in a DataFrame
