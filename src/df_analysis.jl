@@ -72,9 +72,13 @@ function make_likelihood(df; locus = 1, timepoints = 100:100:1000, sub_n = 100)
     Ns = df.pop_size[ind] # total number of indivudals
     Ks = round.(Int,map(x -> x[locus], df.freq[ind]) .* Ns) #number of mutants.
     Js = Ns .- Ks
-    ks = map((k,j) -> rand(Hypergeometric(k,j,sub_n)), Ks, Js)
-    fn_list = map((k,d)->Δ_likelihood(d,1//2,sub_n,k),ks,Ds)
-    Δ -> sum(f(Δ) for f in fn_list)
+    ks = map((k,j) -> rand(Hypergeometric(k, j, min(sub_n,k+j))), Ks, Js)
+    # if pop.size is smaller than the subsample size (sub_n), than default to pop.size
+    fn_list = map((k,d,n)->Δ_likelihood(d,1//2,min(sub_n,n),k),ks,Ds,Ns)
+    fn_normalize = Δ_likelihood(10^-5,1//2,2,1)
+    # this function creates a minimum at finite Δ even if there is no mutants observed
+    # D sets rough scale at which fitness effect will be invisible.
+    Δ -> sum(f(Δ) for f in fn_list) + 0.01*fn_normalize(Δ)
 end
 
 function estimate_Δ(dfs::Vector; locus = 1, timepoints = 100:100:1000, sub_n = 100)

@@ -9,6 +9,7 @@ addprocs(7)
 using CSV
 using Printf
 using DataFrames
+using Statistics
 ##
 ##
 
@@ -21,19 +22,24 @@ path = "/Users/lamont/Dropbox/Colin_ControlTheory/HIV trapping code/Julia result
 
 
 ## One site under selection
-loci = 2^10
+loci = 2^9
 # β1 = zeros(loci)
 # fixed_sites = [ ii for ii in 1:loci if (mod(ii, 5)==0)]
 # β1[fixed_sites] .= 0.00001 .* fixed_sites
 # variable_sites = [ ii for ii in 1:loci if (mod(ii, 20)==3)]
 # β1[variable_sites] .= 0.00001*5000
 β1 = zeros(loci)
-β1[50] += 5.0e-6 * 100
+β1[45] += 5.0e-6 * 500
+β1[40] += 5.0e-6 * 500
+β1[50] += 5.0e-6 * 500
+β1[55] += 5.0e-6 * 500
+β1[60] += 5.0e-6 * 500
+
 par = PopRates(
     κ= 1000,
     χ=0, 
     ρ=0.1, 
-    μ= 0.01 /1000/2, # the first number sets the diversity 
+    μ= 0.005 /1000/2, # the first number sets the diversity 
     loci = loci, 
     β1 = β1)
 dglist = pmap(x->run_sim(par, 0:10:5000 ; flip_prob =0),1:200)
@@ -41,25 +47,33 @@ dglist = pmap(x->run_sim(par, 0:10:5000 ; flip_prob =0),1:200)
 fitness = pmap(ii->estimate_Δ(dglist, locus = ii, timepoints = 1000:100:5000), 40:60)
 ##
 
-
+loci = 2^9
+β1 = zeros(loci)
+fixed_sites = [ ii for ii in 1:loci if (mod(ii, 4)==0)]
+β1[fixed_sites] .= 0.00001 .* (fixed_sites .- .5*mean(fixed_sites))
+#variable_sites = [ ii for ii in 1:loci if (mod(ii, 20)==3)]
+#β1[variable_sites] .= 0.00001*5000
 
 ## Reference Simulation
 global p = []
-for D in [0.01,0.1]
+for k in [70, 100,300,1000,3000]
+    D = 0.02
 par = PopRates(
-    κ= 1000,
-    χ=0, 
+    κ= k,
+    χ=0.1, 
     ρ=0.1, 
-    μ= D /1000/2, # the first number sets the diversity 
+    μ= D / k /2, # the first number sets the diversity 
     loci = loci, 
     β1 = β1)
     # β1 is symmetrical 
 true_fit =β1[fixed_sites]/par.μ
-dglist = pmap(x->run_sim(par, 0:10:5000 ; flip_prob =0),1:ceil(Int64,(10/sqrt(D))))
+dglist = pmap(x->run_sim(par, 0:10:5000 ; flip_prob =0), collect(1:ceil(Int64,(2000/sqrt(k)))))
 fitness = pmap(ii->estimate_Δ(dglist, locus = ii, timepoints = 1000:100:5000), fixed_sites)
 push!(p,[true_fit,fitness])
 end
 
+
+##
 global q = []
 for D in [0.01,0.1]
 par = PopRates(
@@ -80,9 +94,7 @@ end
 ##
 using Gadfly
 ii = 1
-plot(layer(x = p[ii][1], y = p[ii][2],Geom.line),
-layer(x = q[ii][1], y = q[ii][2], Geom.line),
-layer(x -> x, 0, maximum(p[ii][1])), Coord.cartesian(xmax =  maximum(p[ii][1]), ymax = 1.1*maximum(p[ii][2])))
+plot(layer(x = p[ii][1], y = p[ii][2],Geom.line), layer(x -> x, 0, maximum(p[ii][1])), Coord.cartesian(xmax =  maximum(p[ii][1]), ymax = 1.1*maximum(p[ii][2])))
 ##
 par = PopRates(
     κ= 5000,

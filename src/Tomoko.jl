@@ -72,9 +72,9 @@ mutate!(Inf) should randomize the genome
 
 To undertand the code, here we have randomly chosen cuts at [2,5].
 From positions 3-5 the codes are swapped as in this diagram.
-*--  ,---  ,----->
+*--. ,---. ,----->
     /     /
-*--' `---'  ----->
+*--' `---' `----->
 
 """
 
@@ -174,7 +174,7 @@ Measure diversity of neutral sites
 function run_until!(pop::PopState, par::PopRates, t) 
     renew_fitness(pop,par)
         # really only neccesary if the parameters have changed
-        # definitely slows things down if timesteps are recorded at order generation time
+        # slows things down if timesteps are recorded at order generation time
     while pop.time < t
         next_event!(pop, par) 
     end
