@@ -60,10 +60,23 @@ function Δ_likelihood(D,q,n,k)
         logbinomial(n,k)
 end
 
+# function get_countdata(df, locus, time_points)
+#     ind = map( t->findfirst(x -> x>t, df.time), time_points)
+#     ind = ind[ind .!= nothing]
+#     Ds = df.D[ind] # population diversity
+#     # subsampling element (this may be neccesary to limit the large number of genomes)
+#     Ns = df.pop_size[ind] # total number of indivudals
+#     Ks = round.(Int,map(x -> x[locus], df.freq[ind]) .* Ns) #number of mutants.
+#     Js = Ns .- Ks
+#     return (Ds, Js, Ks)
+# end
+    
+
 
 function make_likelihood(df; locus = 1, timepoints = 100:100:1000, sub_n = 100)
+    # Return the likelihood function for a single time trace
     ind = map( t->findfirst(x -> x>t, df.time),timepoints)
-    ind = ind[ind.!=nothing]
+    ind = ind[ind .!= nothing]
     if length(ind) <= 1
         return (x->0)
     end
@@ -87,4 +100,10 @@ function estimate_Δ(dfs::Vector; locus = 1, timepoints = 100:100:1000, sub_n = 
     s0 = [0.0]
     y = Optim.minimizer(optimize(like, s0, LBFGS(), autodiff = :forward))
     return -y[1]
+end
+
+function get_Δ(dfs::Vector; locus = 1, timepoints = 100:100:1000, sub_n = 100)
+    fnlist = map(x-> make_likelihood(x; locus = locus, timepoints = timepoints, sub_n = sub_n),dfs)
+    like(Δ) = mapreduce(f->f(Δ...), +, fnlist)
+    return like
 end

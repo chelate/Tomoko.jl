@@ -1,27 +1,17 @@
 
 
-
+using Revise
 using Distributed
 addprocs(7)
 @everywhere using Pkg
 @everywhere Pkg.activate(".")
 @everywhere using Tomoko
+using Tomoko
 using CSV
 using Printf
 using DataFrames
 using Statistics
-##
-##
 
-function save_pop_fit(path, result, par; name_fields = [:κ,:μ,:χ], p = 0)
-    s = ["$(name)=$(@sprintf("%.0E", getfield(par,name)))_" for name in name_fields]
-    CSV.write(string(path,s...,"pflip=$(@sprintf("%.0E", p))",".csv"),result)
-end
-
-path = "/Users/lamont/Dropbox/Colin_ControlTheory/HIV trapping code/Julia results/"
-
-
-## One site under selection
 loci = 2^9
 # β1 = zeros(loci)
 # fixed_sites = [ ii for ii in 1:loci if (mod(ii, 5)==0)]
@@ -29,23 +19,31 @@ loci = 2^9
 # variable_sites = [ ii for ii in 1:loci if (mod(ii, 20)==3)]
 # β1[variable_sites] .= 0.00001*5000
 β1 = zeros(loci)
-β1[45] += 5.0e-6 * 500
-β1[40] += 5.0e-6 * 500
-β1[50] += 5.0e-6 * 500
-β1[55] += 5.0e-6 * 500
-β1[60] += 5.0e-6 * 500
+mu = 0.05 /1000/2 # the first number sets the diversity 
+for ii in 40:2:60
+    β1[ii] += mu * 500
+end
+
 
 par = PopRates(
     κ= 1000,
     χ=0, 
     ρ=0.1, 
-    μ= 0.005 /1000/2, # the first number sets the diversity 
+    μ= mu, # the first number sets the diversity 
     loci = loci, 
     β1 = β1)
 dglist = pmap(x->run_sim(par, 0:10:5000 ; flip_prob =0),1:200)
 ##
-fitness = pmap(ii->estimate_Δ(dglist, locus = ii, timepoints = 1000:100:5000), 40:60)
+fitness = pmap(ii->estimate_Δ(dglist, locus = ii, timepoints = 4000:20:4100), 40:60)
+plot(x=1:21,y=fitness)
 ##
+function save_pop_fit(path, result, par; name_fields = [:κ,:μ,:χ], p = 0)
+    s = ["$(name)=$(@sprintf("%.0E", getfield(par,name)))_" for name in name_fields]
+    CSV.write(string(path,s...,"pflip=$(@sprintf("%.0E", p))",".csv"),result)
+end
+
+path = "/Users/lamont/Dropbox/Colin_ControlTheory/HIV trapping code/Julia results/"
+
 
 loci = 2^9
 β1 = zeros(loci)

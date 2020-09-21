@@ -53,7 +53,7 @@ function mut_rate(pop::PopState, par::PopRates)
 end
 
 function noise(pop::PopState, par::PopRates)
-    par.σ
+    par.λ
 end
 
 function freq(pop::PopState, par::PopRates)
