@@ -46,13 +46,13 @@ par = PopRates(χ=.2, ρ=0.1, μ=10^-4, loci = 512)
 df = run_sim(par, 1:5:10000)
 ```
 
-`run_sim' initializes a population by drawing frequencies from the Wright equlibrium at each locus.  Then the population is propagated forward in time using an exact Gillespie simulatior while statistics at the specified timepoints. These statistics and time point are stored as a dataframe.
+`run_sim` initializes a population by drawing frequencies from the Wright equlibrium at each locus.  Then the population is propagated forward in time using an exact Gillespie simulatior while statistics at the specified timepoints. These statistics and time point are stored as a dataframe.
 
 The simulation is in the form of an individual-based chemical reaction model. The time between birth/death events is exponentially distributed. This leads to a stochastic Lotka-Voltera equation for the mean frequency of a particular trait in the absence of linkage.
 
 # The default statistics
 We collect the following default statistics as columns in a DataFrame
-`[:time, :pop_size, :freq, :D, :mean_fit, :var_fit]'
+`[:time, :pop_size, :freq, :D, :mean_fit, :var_fit]`
 
 * `time` The time at which the statistics were collected. Interconvertable with generations in the Wright-Fisher sense
 * `pop_size` Number of individuals at a given time
@@ -61,7 +61,7 @@ We collect the following default statistics as columns in a DataFrame
 * `mean_fit` The mean fitness of the population
 * `var_fit` The variance of the fitness of the population
 
-Plotting, especially with `Gadfly.jl` and `StatPlots.jl` is well integrated with data frames.  For example, using the output of the simulation above, you can plot the `pop_size' over time
+Plotting, especially with `Gadfly.jl` and `StatPlots.jl` is well integrated with data frames.  For example, using the output of the simulation above, you can plot the `pop_size` over time
 
 ```julia
 using Gadfly
