@@ -1,110 +1,62 @@
 
 
-
+using Revise
 using Distributed
-addprocs(7)
+addprocs(8)
 @everywhere using Pkg
 @everywhere Pkg.activate(".")
 @everywhere using Tomoko
+using Tomoko
 using CSV
 using Printf
 using DataFrames
 using Statistics
-##
-##
+
+
+path = "/Users/lamont/Dropbox/Colin_ControlTheory/HIV trapping code/Julia results/"
 
 function save_pop_fit(path, result, par; name_fields = [:κ,:μ,:χ], p = 0)
     s = ["$(name)=$(@sprintf("%.0E", getfield(par,name)))_" for name in name_fields]
     CSV.write(string(path,s...,"pflip=$(@sprintf("%.0E", p))",".csv"),result)
 end
 
-path = "/Users/lamont/Dropbox/Colin_ControlTheory/HIV trapping code/Julia results/"
-
-
-## One site under selection
 loci = 2^9
 # β1 = zeros(loci)
 # fixed_sites = [ ii for ii in 1:loci if (mod(ii, 5)==0)]
 # β1[fixed_sites] .= 0.00001 .* fixed_sites
 # variable_sites = [ ii for ii in 1:loci if (mod(ii, 20)==3)]
 # β1[variable_sites] .= 0.00001*5000
-β1 = zeros(loci)
-β1[45] += 5.0e-6 * 500
-β1[40] += 5.0e-6 * 500
-β1[50] += 5.0e-6 * 500
-β1[55] += 5.0e-6 * 500
-β1[60] += 5.0e-6 * 500
 
-par = PopRates(
-    κ= 1000,
-    χ=0, 
-    ρ=0.1, 
-    μ= 0.005 /1000/2, # the first number sets the diversity 
-    loci = loci, 
-    β1 = β1)
-dglist = pmap(x->run_sim(par, 0:10:5000 ; flip_prob =0),1:200)
 ##
-fitness = pmap(ii->estimate_Δ(dglist, locus = ii, timepoints = 1000:100:5000), 40:60)
-##
-
-loci = 2^9
-β1 = zeros(loci)
-fixed_sites = [ ii for ii in 1:loci if (mod(ii, 4)==0)]
-β1[fixed_sites] .= 0.00001 .* (fixed_sites .- .5*mean(fixed_sites))
-#variable_sites = [ ii for ii in 1:loci if (mod(ii, 20)==3)]
-#β1[variable_sites] .= 0.00001*5000
-
-## Reference Simulation
-global p = []
-for k in [70, 100,300,1000,3000]
-    D = 0.02
-par = PopRates(
-    κ= k,
-    χ=0.1, 
-    ρ=0.1, 
-    μ= D / k /2, # the first number sets the diversity 
-    loci = loci, 
-    β1 = β1)
-    # β1 is symmetrical 
-true_fit =β1[fixed_sites]/par.μ
-dglist = pmap(x->run_sim(par, 0:10:5000 ; flip_prob =0), collect(1:ceil(Int64,(2000/sqrt(k)))))
-fitness = pmap(ii->estimate_Δ(dglist, locus = ii, timepoints = 1000:100:5000), fixed_sites)
-push!(p,[true_fit,fitness])
+for x in [0,0.1], p in [0,0.01], mu_ in [.1,.01]
+    β1 = zeros(loci)
+    mu = mu_ /1000/2 # the first number sets the diversity 
+    fixed_sites = 2^3:2^3:2^9 # 64 fixed sites
+    for ii in fixed_sites
+        β1[ii] += mu * ii
+    end
+    variable_sites = 2^4-1:2^4:2^9 # 32 variable sites
+    for ii in variable_sites
+        β1[ii] += .02 # 2% fitness difference (max - mean < 4 to avoid blow up)
+    end
+    true_fit =β1[fixed_sites]/mu
+    result = DataFrame(f = true_fit)
+    par = PopRates(
+        κ= 1000,
+        χ= x, 
+        ρ= 0.1, 
+        μ= mu , # first number determines D
+        loci = loci, 
+        β1 = β1)
+    
+    for ii in 1:80
+        dglist = pmap(x->run_sim(par, 0:10:2000 ; var_sites = variable_sites, flip_prob = p/length(variable_sites)), 1:12)
+        fitness = pmap(ii->estimate_Δ(dglist, locus = ii, timepoints = 1000:100:2000) , fixed_sites)
+        result[Symbol("run",ii)]=fitness
+    end
+    save_pop_fit(path,result,par, p = p)
 end
 
-
-##
-global q = []
-for D in [0.01,0.1]
-par = PopRates(
-    κ= 1000,
-    χ=1, 
-    ρ=0.1, 
-    μ= D /1000/2, # the first number sets the diversity 
-    loci = loci, 
-    β1 = β1)
-    # β1 is symmetrical 
-true_fit =β1[fixed_sites]/par.μ
-dglist = pmap(x->run_sim_total_recombine(par, 0:10:5000 ; flip_prob =0),1:ceil(Int64,(10/sqrt(D))))
-fitness = pmap(ii -> estimate_Δ(dglist, locus = ii, timepoints = 1000:100:5000),fixed_sites)
-push!(q,[true_fit,fitness])
-end
-
-
-##
-using Gadfly
-ii = 1
-plot(layer(x = p[ii][1], y = p[ii][2],Geom.line), layer(x -> x, 0, maximum(p[ii][1])), Coord.cartesian(xmax =  maximum(p[ii][1]), ymax = 1.1*maximum(p[ii][2])))
-##
-par = PopRates(
-    κ= 5000,
-    χ=0.0, 
-    ρ=0.1, 
-    μ=.1 /5000/2, # the first number sets the diversity 
-    loci = loci, 
-    β1 = β1)
-    # β1 is symmetrical 
-true_fit =β1[fixed_sites]/par.μ
 ##
 
 for x in [0,0.1], p in [0,0.01]
@@ -127,9 +79,7 @@ end
 
 
 ##
-df = run_sim(par, 0:20:13000 ; var_sites = variable_sites, flip_prob = .01/length(variable_sites))
-##
-
+using Gadfly
 l1 = layer(x =df.time ,y = (df.mean_fit .- mean(df.mean_fit) )./ 2 .+ 0.1 , Geom.line)
 l2 = layer(x =df.time ,y = df.D , Geom.line, Theme(default_color=colorant"orange"))
 

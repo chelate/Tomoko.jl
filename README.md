@@ -1,19 +1,17 @@
 # Tomoko
 
-Pop-gen simulator for Julia.  Tomoko is a forward-time, individual-based, bi-allelic haploid simulator suitable for testing high-dimensional models of fitness, linkage, and recombination. It is named in honor of Tomoko Ohta, pioneer of the nearly-neutral theory in molecular genetics.  Major inspiration for the API is from the `high_d` simulator in [FFPopSim](http://webdav.tuebingen.mpg.de/ffpopsim/). 
+Pop-gen simulator for Julia.  Tomoko is a forward-time, individual-based, bi-allelic haploid simulator suitable for testing high-dimensional models of fitness, linkage, and recombination. It is named in honor of Tomoko Ohta, pioneer of the nearly-neutral theory in molecular genetics.  Major inspiration for the UI is from the `high_d` simulator in [FFPopSim](http://webdav.tuebingen.mpg.de/ffpopsim/). 
 
 Also included are several tools associated with Wright equilibrium including sampling and estimation of population and site parameters associated with the equilibrium distribution.
 
-Genetics is now almost 100 years old, but still very much active. Ohta has said,
+Ohta has said,
 
 >Genetics is now at a very interesting stage. There are so many interesting questions unanswered and so many ways to test to find answers. Intuition is very important in addressing questions. Nurture your own sensibility and pursue your research and work with confidence.
 
-# Parameters and running simulations
-The scheme is simple. Genotypes (stored as `BitVector`'s) and individuals are in a 1-1 mapping. We do not keep track of the number of clones. Instead, we avoid O(`pop.size^2`) time scaling by using a rejection sampling scheme. The rejection sampling is most efficient when the nearly-neutral assumption holds, and the majority of the population has additive fitness close to the maximum.
+# Parameters
+Genotypes (stored as `BitVector`'s) and individuals are in a 1-1 mapping. We do not keep track of the number of clones as is done in more efficient low-mutation, low-recombination simulation schemes. The `PopState` struct has a field `.individuals` which is just the vector of the `BitVector` genomes, of length equal to the number of individuals.
 
-The dynamics of a population are determined by a type `PopRates`.
-
-`PopRates` has the following default definitions
+The dynamics of a population are determined by a type `PopRates`.  `PopRates` has the following default definitions
 
 ```julia
 struct PopRates		# parameters defining a population
@@ -21,7 +19,7 @@ struct PopRates		# parameters defining a population
 	κ = 1000.       # avg pop size
 	β0 = 1.0        # base (competetive) fitness  
 	β1 = zeros(loci)# fitness difference between sites.
-	σ = 0.5         # excess Poisson noise
+	λ = 4         	# total birth death noise
 	μ = 1.0e-3      # mutation rate per site
 	χ = 0.0         # outcrossing rate (between 0 and one), rate of recombination events
 	ρ  = 1.0e-2     # how tightly two crossed genomes get wound together (crosses per nucleotide)
@@ -29,7 +27,15 @@ struct PopRates		# parameters defining a population
 end
 ```
 
-`.β1` is keyword which is passed as an array of fitness differences between wildtype (locus = 0) and the mutant (locus = 1).  These fitnesses are implemented in a symmertric (-1,1) way by default, with no epistasis.  Epistasis can be defined by defining an arbitrary fitness function 
+`.β1` is keyword which is passed as an array of fitness differences between wildtype (locus = 0) and the mutant (locus = 1).  These fitnesses are implemented in a symmertric (-1,1) way by default with no epistasis, the genome bit at position `i` `σ_i = [0,1]` determines fitness `f = Σ_i (2σ_i-1) β_i`.  Epistasis can be defined by defining an arbitrary fitness function 
+
+All individuals are assumed to have the same activity `λ` which is the sum of the birth rates and death rates. The birth rates `b = (λ + f - φ)/2`, and the death rates are `b = (λ - f + φ)/2`, so `b + d = λ`. `φ` are something like the chemical potential, equal to `φ = (Σ_i f_i)/κ ` they sets the competetive pressure and the mean growth rate of the population.
+
+In our Gillespie scheme, we can sample an individual at random and then use a Bernoulli trial to determine whether it has experienced a birth or death event. This makes our system very close to a Moran model. The equivalent Wright-Fisher (WF) effective population size is `N_e = κ/(2*λ)`, so our generational time scale is `1/(2λ)`.
+
+Technical Advertisement: The efficiciency in this scheme relative to WF for computing competition is something like the computational efficiency of the grand-cannonical (defined with temperature, chemical potential) vs. cannonical ensembles (defined with temperature and particle number) in statistical mechanics. Our individuals are conditionally independent, and competition is only mediated through the fitness offset `φ`. This makes the math (specifically the parent sampling in our case) much easier (O(1) instead of O(n)) because we do not sample from the multinomial vector with weights `w_i = exp(f_i)/(Σ_i exp(f_i)`
+
+# Running simulations
 
 To run a simulation, you 
 1. define an instance of a `PopRates` object, by specifying where the fields are different from the default values.
@@ -42,11 +48,7 @@ df = run_sim(par, 1:5:10000)
 
 `run_sim' initializes a population by drawing frequencies from the Wright equlibrium at each locus.  Then the population is propagated forward in time using an exact Gillespie simulatior while statistics at the specified timepoints. These statistics and time point are stored as a dataframe.
 
-The simulation is in the form of an individual-based chemical reaction model. The time between birth/death events is exponentially distributed. The birth rate of an individual with genotype `x` is the fitness plus noise `f(x) + σ` and the death rate is the noise plus competition term: `mean(f.(pop.individuals))/κ + σ`
-
-Note that the death rates for all the individuals in the population are the same while the birth rates are determined by their fitness plus death rate. This leads to a stochastic Lotka-Voltera equation for the mean frequency of a particular trait in the absence of linkage.
-
-WARNING: As fitness only affects birth rates makes much easier to reason about (and code) the parameters than if fitness also affect the death rates as well.  However, this comes at the price of instability when there are individuals with negative birthrates.  The population size grows indefinitely and the simulation may fail to terminate. In future versions we hope to avoid this issue.
+The simulation is in the form of an individual-based chemical reaction model. The time between birth/death events is exponentially distributed. This leads to a stochastic Lotka-Voltera equation for the mean frequency of a particular trait in the absence of linkage.
 
 # The default statistics
 We collect the following default statistics as columns in a DataFrame
@@ -87,7 +89,7 @@ function run_sim(pop::Popstate, par::PopRates, timepoints;
     return df # return the df, now heavy with juicy statistics for you to plot or analyze
 end
 
-# definition when pop is not provided: linkage-free equilibrium.
+# definition when pop is not provided: linkage-free equilibrium initial condition.
 function run_sim(par::PopRates, timepoints; kwdargs...) # population loci set to wright equilibrium, 
 	pop = initialize_pop(par)
 	run_sim(pop, par, timepoints; kwdargs...)
@@ -100,7 +102,7 @@ Complications can fall into three categories
 1. Calculate more statistics.
 
 
-## Shanging the start population
+## Changing the start population
 To make things more intersting, we can change the initial population to be more out-of equilibrium. For instance, we might define the population to be entirely made up of wildtype clones
 
 ```julia
@@ -114,17 +116,17 @@ par = PopRates(χ=.2, ρ=0.1, μ=10^-4)
 pop = initialize_pop(0.0, par; pop_size = 10) 
 df = run_sim(pop, par, 1:5:10000)
 ```
-We can also define the population with a full vector of frequencies of length equal to the number of loci.
+We can also define a population stochastically with a full vector of frequencies of length equal to the number of loci.
 
 ## Varying the evironment, bottleneck events.
-As seen above, `run_sim` has the ability to include environmental variation, consisting of selection sign flips on some number of active sites through the defined `active_sites` vector.  This gets used by `selection_flip` which returns a new parameter value.
+As seen above, `run_sim` has the ability to include environmental variation, consisting of selection sign flips on some number of active sites through the defined `active_sites` vector.  This gets used by `selection_flip` which returns a new ParRates object.
 
 One can replace where `selection_flip` occurs in the `for` loop with more complicated changes to the evolutionary parameters or with functions on the population, like bottleneck events that remove individuals based on a particular sequence of loci.
 
 Note: `par::PopRates` is an immutable with internal constructors and isn't be mutated on the fly. Instead a new instance is defined and overwrites the local variable `par`. On the other hand,`pop::PopState` is a mutable and can be mutated at will.
 
 ## Adding more statistics
-The statistics are functions of the population and parameters that live inside the Tomoko module.  This is how `record_stats` identifies the statistic name with the statistic function.  This means that to define more functions from the REPL you have to eval them into the Tomoko context and update the global variable `pop_stats` so that `record_stats` knows you want to keep track of a new variable.
+The statistics are functions of the population and parameters that live inside the Tomoko module.  This is how `record_stats` identifies the statistic name with the statistic function.  This means that to define more functions from the REPL you have to `eval` them into the Tomoko context and update the global variable `pop_stats` so that `record_stats` knows you want to keep track of a new variable.
 
 ```
 julia> Tomoko.eval(:(
@@ -136,9 +138,9 @@ end
 julia> push!(Tomoko.pop_stats,:new_stat)
 ```
 
-This design was chosen to keep the statistic-gathering machinery as global variables to avoid having to pass yet another struct to the simulation functions and to make sure that the name and function are intrinsincally linked.
+ It's cool that Julia lets you do this, but there's a tradeoff, and that is your session becomes dependent on your `eval`-history. From a functional programming persepctive, this is a bad idea. This design was chosen to keep the statistic-gathering machinery as global variables to avoid having to pass yet another argument to the simulation functions and to make sure that the name and function are intrinsincally linked.
 
 # Extending and contributing
-In the end it's impossible to design a user interface that can do everything from the REPl.   To run the experiment you need to run to answer your scientific questions, you will probably have to look at the source and see what's there, dev and modify the package to suit your needs.
+In the end it's impossible to design a user interface that can do everything from the REPl.  To run the experiment you need to run to answer your scientific questions, you will probably have to look at the source and see what's there, dev and modify the package to suit your needs.
 
 By understanding what methods are available out of the box, you can get a feel for how the machinery works and how to extend it. Help Tomoko.jl evolve with PR's and feature requests!
