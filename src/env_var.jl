@@ -4,7 +4,7 @@ function selection_flip(par::PopRates; var_sites = [], prob = 0.1)
     # Generates a new parameter struct with variable sites flipped at random with probability = prob
     n = length(var_sites) # length of vectors with selection
     k = rand(Binomial(n,prob))
-    inds = var_sites[sample(1:length(var_sites),k, replace=false)]
+    inds = var_sites[StatsBase.sample(1:length(var_sites),k, replace=false)]
     β1 = β1_vector(par.βf)
     β1[inds] .*= -1
     return PopRates(par, β1 = β1)

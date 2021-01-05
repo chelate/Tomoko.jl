@@ -31,9 +31,23 @@ end
 
 All individuals are assumed to have the same activity `λ` which is the sum of the birth rates and death rates. The birth rates `b = (λ + f - φ)/2`, and the death rates are `b = (λ - f + φ)/2`, so `b + d = λ`. `φ` are something like the chemical potential, equal to `φ = (Σ_i f_i)/κ ` they sets the competetive pressure and the mean growth rate of the population.
 
-In our Gillespie scheme, we can sample an individual at random and then use a Bernoulli trial to determine whether it has experienced a birth or death event. This makes our system very close to a Moran model. The equivalent Wright-Fisher (WF) effective population size is `N_e = κ/(2*λ)`, so our generational time scale is `1/(2λ)`.
+In our Gillespie scheme, we can sample an individual at random and then use a Bernoulli trial to determine whether it has experienced a birth or death event. This makes our system very close to a Moran model. The equivalent Wright-Fisher (WF) effective population size is `N_e = κ/(2*λ)`, so our WF-generation time is `1/(2λ)`.
 
-Technical Advertisement: The efficiciency in this scheme relative to WF for computing competition is something like the computational efficiency of the grand-cannonical (defined with temperature, chemical potential) vs. cannonical ensembles (defined with temperature and particle number) in statistical mechanics. Our individuals are conditionally independent, and competition is only mediated through the fitness offset `φ`. This makes the math (specifically the parent sampling in our case) much easier (O(1) instead of O(n)) because we do not sample from the multinomial vector with weights `w_i = exp(f_i)/(Σ_i exp(f_i)`
+The efficiciency in this scheme relative to WF for computing competition is something like the computational efficiency of using the grand-cannonical (defined with temperature, chemical potential) vs. cannonical ensembles (defined with temperature and particle number) in statistical mechanics. Our individuals are conditionally independent, and competition is only mediated through the fitness offset `φ`. This makes the math (specifically the parent sampling in our case) much easier  because we do not sample from the multinomial vector with weights `w_i = exp(f_i)/(Σ_i exp(f_i)`, a birth event is O(1) instead of an O(n)) operation (weighted sampling).
+
+In general, multinomial sampling needs lookup tables to be made fast, but as the rates keep changing, these lookup tables would need to be regenerated at significant cost.
+
+# Bulk parameters and simulations
+
+In the bialleleic distribution we have the stationary state
+
+```julia
+p(x) = exp(σ * x) * x^θb * (1-x)^θf / (x * (1-x)) / z_eq(σ,θb,θf)
+```
+
+Diversity parameters `θf = 2 κ μf / λ` and `θb = 2 κ μb / λ`, where these are the forward and backward mutations at the individual level. `μf` is the result of imperfect copies at birth.  Therefore in terms of simulation parameters, since the birth rate is `λ/2`, ingoring the effect of fitness (at capacity `f-φ ~ 0`), `μf = μ * λ/2`  and `θf = κ * μ = 2 Ne * (μ * λ/2)`. At the same time `σ = 2 * n * (f1-f0) /λ = 2 * N_e * (f1-f0)`. 
+
+Typically what we measure is `s = (f1-f0)/(μ * λ/2)` so that 
 
 # Running simulations
 
@@ -109,14 +123,14 @@ To make things more intersting, we can change the initial population to be more 
 pop = initialize_pop(0.0,par) # the first argument specifies the mutant frequency
 ```
 
-Or we can grow out the population out from just a few individuals
+Or we can grow out the population out from just 10  wt-individuals:
 
 ```julia
 par = PopRates(χ=.2, ρ=0.1, μ=10^-4)
 pop = initialize_pop(0.0, par; pop_size = 10) 
 df = run_sim(pop, par, 1:5:10000)
 ```
-We can also define a population stochastically with a full vector of frequencies of length equal to the number of loci.
+We can also define a population stochastically with a full vector of frequencies of length equal to the number of loci to be sampled binomially.
 
 ## Varying the evironment, bottleneck events.
 As seen above, `run_sim` has the ability to include environmental variation, consisting of selection sign flips on some number of active sites through the defined `active_sites` vector.  This gets used by `selection_flip` which returns a new ParRates object.
@@ -139,6 +153,8 @@ julia> push!(Tomoko.pop_stats,:new_stat)
 ```
 
  It's cool that Julia lets you do this, but there's a tradeoff, and that is your session becomes dependent on your `eval`-history. From a functional programming persepctive, this is a bad idea. This design was chosen to keep the statistic-gathering machinery as global variables to avoid having to pass yet another argument to the simulation functions and to make sure that the name and function are intrinsincally linked.
+
+All in all, the advantages of the current design, memory and siplicity of commands are outweighed by flexibility of design and fineness of control offered by alternatives. On the memory footprint for reasonable (read: useful) `PopState`'s ended up being the same order of magnitude as that for the sufficient statistics: 1000 or so (individuals), with 512-bit genomes is not much worse than 512 and change statistics, made up of 64 length floats.  In the future, the `PopState` post-processing statistics construction machinerery will be seperated from the simulation machinery.
 
 # Extending and contributing
 In the end it's impossible to design a user interface that can do everything from the REPl.  To run the experiment you need to run to answer your scientific questions, you will probably have to look at the source and see what's there, dev and modify the package to suit your needs.

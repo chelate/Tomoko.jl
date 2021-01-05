@@ -5,13 +5,13 @@ function  gillespie_step(pop::PopState, par::PopRates)
     total = pop.size * par.λ # total rate
     Δt = randexp() / total
     ind = rand(1:pop.size) # choose an individual at random
-    if  (rand() - 1/2)*par.λ + pop.fitness[ind] - pop.offset > 0
+    if  (2*rand() - 1)*par.λ + pop.fitness[ind] - pop.offset > 0
             process = ind
     else
             process = -ind
     end
     return (process, Δt)
-    # sign of process tells us where it's a birth or death
+    # sign of process tells us whether it's a birth or death
 end
 
 # Mutation
