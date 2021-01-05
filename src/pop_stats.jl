@@ -107,7 +107,7 @@ end
 function stat_D(pop::PopState; 
     sites = 1:length(pop.individuals[1]), # vector of sites to use in likelihood 
     k = length(pop.individuals)) # size of population to take counts one, defaults to all
-        vec = sum(sample(pop.individuals, k, replace=false))[sites]
+        vec = sum(StatsBase.sample(pop.individuals, k, replace=false))[sites]
         vec = permutedims(hcat(vec , k .- vec))
         neutral_D(vec)
 end
